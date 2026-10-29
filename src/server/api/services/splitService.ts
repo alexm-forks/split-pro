@@ -137,7 +137,7 @@ export async function createExpense(
   } catch (error) {
     // If we created a cron job but transaction failed, clean up the cron job
     if (expenseId) {
-      await db.$executeRaw`SELECT cron.unschedule(${`expense_recurring_${expenseId}`})`;
+      await db.$executeRaw`SELECT cron.unschedule(${expenseId})`;
     }
     throw error;
   }

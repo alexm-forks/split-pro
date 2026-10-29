@@ -235,6 +235,7 @@ export const expenseMethods = {
     .input(createCurrencyConversionSchema)
     .mutation(async ({ input, ctx }) => {
       const { amount, rate, from, to, senderId, receiverId, groupId, expenseId } = input;
+      await validateExpenseWritePermission(expenseId, groupId, ctx.session.user.id);
 
       if (!isCurrencyCode(from) || !isCurrencyCode(to)) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid currency code' });
@@ -344,7 +345,7 @@ export const expenseMethods = {
 
   getExpenseDetails: protectedProcedure
     .input(z.object({ expenseId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const expense = await db.expense.findUnique({
         where: {
           id: input.expenseId,
@@ -382,6 +383,26 @@ export const expenseMethods = {
           },
         },
       });
+
+      if (
+        expense &&
+        expense.addedBy !== ctx.session.user.id &&
+        !expense.expenseParticipants.some(
+          (participant) => participant.userId === ctx.session.user.id,
+        )
+      ) {
+        const membership =
+          null === expense.groupId
+            ? null
+            : await db.groupUser.findUnique({
+                where: {
+                  groupId_userId: { groupId: expense.groupId, userId: ctx.session.user.id },
+                },
+              });
+        if (!membership) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'You cannot view this expense' });
+        }
+      }
 
       if (expense && expense.groupId !== null) {
         const missingGroupMembers = await db.group.findUnique({
@@ -558,19 +579,7 @@ export const expenseMethods = {
       if (!expense) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Expense not found' });
       }
-
-      if (expense.groupId !== null) {
-        const group = await db.group.findUnique({
-          where: { id: expense.groupId },
-          select: { archivedAt: true },
-        });
-        if (!group) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Group not found' });
-        }
-        if (group.archivedAt) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Group is archived' });
-        }
-      }
+      await validateExpenseWritePermission(input.expenseId, expense.groupId, ctx.session.user.id);
 
       await deleteExpense(input.expenseId, ctx.session.user.id);
     }),
@@ -635,7 +644,7 @@ const validateEditExpensePermission = async (expenseId: string, userId: number):
     db.expense.findUnique({ where: { id: expenseId }, select: { addedBy: true } }),
   ]);
 
-  if (!expenseParticipant && !addedBy?.addedBy) {
+  if (!expenseParticipant && userId !== addedBy?.addedBy) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'You are not the participant of the expense',
