@@ -6,6 +6,7 @@
   "scripts": {
     "build": "next build --no-lint",
     "just-build": "next build --no-lint",
+    "gen:openapi": "cross-env SKIP_ENV_VALIDATION=true tsx scripts/generate-openapi.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:dev": "prisma migrate dev",
@@ -80,6 +81,7 @@
   "devDependencies": {
     "@faker-js/faker": "10.1.0",
     "@tailwindcss/postcss": "^4.1.10",
+    "@trpc/openapi": "11.18.0-alpha",
     "@types/formidable": "^3.4.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.21",
@@ -88,6 +90,7 @@
     "@types/react-dom": "19.2.1",
     "@types/web-push": "^3.6.3",
     "@typescript/native-preview": "7.0.0-dev.20251016.1",
+    "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "jest": "30.3.0",
     "jest-environment-jsdom": "30.3.0",

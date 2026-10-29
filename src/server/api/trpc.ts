@@ -7,8 +7,9 @@
  * need to use are documented accordingly near the end.
  */
 
-import { TRPCError, initTRPC } from '@trpc/server';
+import { type TRPCDefaultErrorShape, TRPCError, initTRPC } from '@trpc/server';
 import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
+import { type PrismaClient } from '@prisma/client';
 import { type Session } from 'next-auth';
 import superjson from 'superjson';
 import { ZodError, z } from 'zod';
@@ -25,8 +26,9 @@ import { db } from '~/server/db';
  * These allow you to access things when processing a request, like the database, the session, etc.
  */
 
-interface CreateContextOptions {
+export interface CreateContextOptions {
   session: Session | null;
+  db?: PrismaClient;
 }
 
 /**
@@ -39,9 +41,9 @@ interface CreateContextOptions {
  *
  * @see https://create.t3.gg/en/usage/trpc#-serverapitrpcts
  */
-const createInnerTRPCContext = (opts: CreateContextOptions) => ({
+export const createInnerTRPCContext = (opts: CreateContextOptions) => ({
   session: opts.session,
-  db,
+  db: opts.db ?? db,
 });
 
 /**
@@ -61,6 +63,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   });
 };
 
+export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
+
 /**
  * 2. INITIALIZATION
  *
@@ -69,18 +73,29 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  * errors on the backend.
  */
 
-const t = initTRPC.context<typeof createTRPCContext>().create({
-  transformer: superjson,
-  errorFormatter({ shape, error }) {
-    return {
-      ...shape,
-      data: {
-        ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
-        appErrorCode: getAppErrorCode(error.cause),
-      },
-    };
+/**
+ * Shared error formatter, used by both the app tRPC instance below and the
+ * public API instance in `~/server/api/apiTrpc`, so error shapes stay
+ * identical across `/api/trpc` and `/api/v1`.
+ */
+export const trpcErrorFormatter = ({
+  shape,
+  error,
+}: {
+  shape: TRPCDefaultErrorShape;
+  error: TRPCError;
+}) => ({
+  ...shape,
+  data: {
+    ...shape.data,
+    zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+    appErrorCode: getAppErrorCode(error.cause),
   },
+});
+
+const t = initTRPC.context<InnerTRPCContext>().create({
+  transformer: superjson,
+  errorFormatter: trpcErrorFormatter,
 });
 
 /**

@@ -211,4 +211,19 @@ const config: Config = {
   // watchman: true,
 };
 
-export default createJestConfig(config);
+// Next/jest prepends its own node_modules exclusions. Replace them after resolution so the
+// ESM-only serializer used by the REST API tests works with pnpm's nested layout (as on main).
+const esmPackages = 'superjson|copy-anything|is-what';
+
+const jestConfig = async (): Promise<Config> => {
+  const resolved = await createJestConfig(config)();
+  return {
+    ...resolved,
+    transformIgnorePatterns: [
+      `/node_modules/(?!(\\.pnpm|${esmPackages})/)`,
+      `/node_modules/\\.pnpm/(?!(?:${esmPackages})@)`,
+    ],
+  };
+};
+
+export default jestConfig;

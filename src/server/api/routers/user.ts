@@ -13,6 +13,7 @@ import { claimInviteCooldown } from '~/lib/inviteCooldown';
 import { InviteErrorCode } from '~/lib/error/invite';
 import { simplifyDebts } from '~/lib/simplify';
 import { AppError } from '~/server/api/appError';
+import { paginatedResult, paginationInput } from '~/server/api/pagination';
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { db } from '~/server/db';
 import { sendFeedbackEmail, sendInviteEmail } from '~/server/mailer';
@@ -37,7 +38,12 @@ const throwInviteError = (
   throw new TRPCError({ code, message, cause: new AppError(inviteErrorCode, message) });
 };
 
-export const userRouter = createTRPCRouter({
+/**
+ * Method record for `userRouter`, exported so the public API router
+ * (`~/server/api/apiRouter`) can mount a curated subset of the same procedures
+ * without duplicating them.
+ */
+export const userMethods = {
   me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
   getFriends: protectedProcedure.query(async ({ ctx }) => {
@@ -477,7 +483,35 @@ export const userRouter = createTRPCRouter({
     }),
 
   getWebPushPublicKey: protectedProcedure.query(() => env.WEB_PUSH_PUBLIC_KEY ?? ''),
-});
+};
+
+export const userRouter = createTRPCRouter(userMethods);
+
+/**
+ * API-only variant of `getOwnExpenses` with offset pagination, mounted in the
+ * public API router instead of the app router.
+ */
+export const getOwnExpensesApiProcedure = protectedProcedure
+  .input(paginationInput.default({}))
+  .query(async ({ input, ctx }) => {
+    const where = { paidBy: ctx.session.user.id, deletedBy: null };
+
+    const [items, total] = await Promise.all([
+      db.expense.findMany({
+        where,
+        // Tie-break with `id`: `expenseDate` is not unique and Postgres may return
+        // Tied rows in an arbitrary order between queries, breaking pagination
+        // For clients walking pages.
+        orderBy: [{ expenseDate: 'desc' }, { id: 'desc' }],
+        include: { group: true },
+        take: input.limit,
+        skip: input.offset,
+      }),
+      db.expense.count({ where }),
+    ]);
+
+    return paginatedResult(items, total, input);
+  });
 
 export const getUserMap = async (userIds: number[]) => {
   const users = await db.user.findMany({
