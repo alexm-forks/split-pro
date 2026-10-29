@@ -1,6 +1,7 @@
 import { CheckIcon } from '@heroicons/react/24/outline';
 import { UserPlusIcon } from '@heroicons/react/24/solid';
 import type { Group, GroupUser, SplitType, User } from '@prisma/client';
+import { keepPreviousData } from '@tanstack/react-query';
 import { SendIcon } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -47,6 +48,17 @@ export const SelectUserOrGroup: React.FC<{
   const filteredFriends = friendsQuery.data?.filter((f) =>
     (f.name ?? f.email)?.toLowerCase().includes(nameOrEmail.toLowerCase()),
   );
+
+  // Alex hack: also offer every other user on the instance whose name or email matches.
+  const searchQuery = nameOrEmail.trim();
+  const usersQuery = api.user.searchUsers.useQuery(
+    { query: searchQuery },
+    { enabled: 0 < searchQuery.length, placeholderData: keepPreviousData },
+  );
+  const otherUsers =
+    0 < searchQuery.length
+      ? usersQuery.data?.filter((u) => !friendsQuery.data?.some((f) => f.id === u.id))
+      : [];
 
   const onAddEmailClick = useCallback(
     (invite = false) => {
@@ -234,6 +246,29 @@ export const SelectUserOrGroup: React.FC<{
           </>
         ) : null}
 
+        {otherUsers?.length ? (
+          <>
+            <div className="mt-8 font-normal text-gray-500">{t('actors.other_users')}</div>
+            {otherUsers.map((u) => (
+              <button
+                key={u.id}
+                className="flex w-full items-center justify-between border-b border-gray-900 py-4"
+                onClick={() => handleFriendClick(u)}
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <EntityAvatar entity={u} size={35} />
+                  <div className="truncate">{u.name ?? u.email}</div>
+                </div>
+                {participants.some((p) => p.id === u.id) ? (
+                  <div>
+                    <CheckIcon className="text-primary h-4 w-4" />
+                  </div>
+                ) : null}
+              </button>
+            ))}
+          </>
+        ) : null}
+
         {/*Can't select multiple groups or groups with outside ppl */}
         {filteredGroups?.length && 1 === participants.length ? (
           <>
@@ -255,7 +290,7 @@ export const SelectUserOrGroup: React.FC<{
           </>
         ) : null}
 
-        {0 === filteredFriends?.length && 0 === filteredGroups?.length ? (
+        {0 === filteredFriends?.length && 0 === filteredGroups?.length && !otherUsers?.length ? (
           <div className="mt-[30%] flex flex-col items-center justify-center gap-20 transition-discrete starting:opacity-0">
             <Image alt="empty user image" src="/empty_img.svg" width={250} height={250} />
           </div>

@@ -50,6 +50,31 @@ export const userRouter = createTRPCRouter({
     return friends.map((f) => f.friend);
   }),
 
+  // Alex hack: find any user on the instance by name or email, not just existing friends.
+  searchUsers: protectedProcedure
+    .input(z.object({ query: z.string().trim().min(1).max(100) }))
+    .query(async ({ input, ctx }) => {
+      const users = await db.user.findMany({
+        where: {
+          id: { not: ctx.session.user.id },
+          OR: [
+            { name: { contains: input.query, mode: 'insensitive' } },
+            { email: { contains: input.query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ name: 'asc' }, { email: 'asc' }],
+        take: 20,
+      });
+
+      // Don't hand other users' bank links or hidden friends to the client.
+      return users.map((user) => ({
+        ...user,
+        bankingId: null,
+        obapiProviderId: null,
+        hiddenFriendIds: [],
+      }));
+    }),
+
   getOwnExpenses: protectedProcedure.query(async ({ ctx }) => {
     const expenses = await db.expense.findMany({
       where: {

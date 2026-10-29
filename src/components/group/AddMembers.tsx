@@ -1,5 +1,6 @@
 import { UserPlusIcon } from '@heroicons/react/24/solid';
 import { type Group, type GroupUser } from '@prisma/client';
+import { keepPreviousData } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { CheckIcon, SendIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -26,6 +27,12 @@ const AddMembers: React.FC<{
   const [inputValue, setInputValue] = useState('');
 
   const friendsQuery = api.user.getFriends.useQuery();
+  // Alex hack: also offer every other user on the instance whose name or email matches.
+  const searchQuery = inputValue.trim();
+  const usersQuery = api.user.searchUsers.useQuery(
+    { query: searchQuery },
+    { enabled: 0 < searchQuery.length, placeholderData: keepPreviousData },
+  );
   const addMembersMutation = api.group.addMembers.useMutation();
   const addFriendMutation = api.user.inviteFriend.useMutation();
 
@@ -40,11 +47,18 @@ const AddMembers: React.FC<{
     return acc;
   }, {});
 
-  const filteredUsers = friendsQuery.data?.filter(
+  const filteredFriends = friendsQuery.data?.filter(
     (friend) =>
       !groupUserMap[friend.id] &&
       (friend.name ?? friend.email)?.toLowerCase().includes(inputValue.toLowerCase()),
   );
+  const otherUsers =
+    0 < searchQuery.length
+      ? (usersQuery.data?.filter(
+          (u) => !groupUserMap[u.id] && !friendsQuery.data?.some((f) => f.id === u.id),
+        ) ?? [])
+      : [];
+  const filteredUsers = [...(filteredFriends ?? []), ...otherUsers];
 
   function onUserSelect(userId: number) {
     setUserIds((prev) => ({ ...prev, [userId]: !prev[userId] }));
