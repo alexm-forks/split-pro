@@ -1,5 +1,5 @@
 import { SplitType } from '@prisma/client';
-import { isCurrencyCode } from '~/lib/currency';
+import { DEFAULT_CURRENCY, isCurrencyCode } from '~/lib/currency';
 import { type PushMessage } from '~/types';
 
 import { db } from '~/server/db';
@@ -138,7 +138,7 @@ export async function sendExpensePushNotification(expenseId: string) {
 
   const formatAmount = (currency: string, amount: bigint) => {
     const { toUIString } = getCurrencyHelpers({
-      currency: isCurrencyCode(currency) ? currency : 'USD',
+      currency: isCurrencyCode(currency) ? currency : DEFAULT_CURRENCY,
     });
     return toUIString(amount);
   };

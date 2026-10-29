@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { useAddExpenseStore } from '~/store/addStore';
 import { api } from '~/utils/api';
+import { DEFAULT_CURRENCY, pickDefaultCurrency } from '~/lib/currency';
 import { deserializeDefaultSplit } from '~/lib/defaultSplit';
 import { getInviteErrorToastKey, isInviteEmailSendFailed } from '~/lib/error/invite';
 
@@ -99,7 +100,7 @@ export const SelectUserOrGroup: React.FC<{
           email: nameOrEmail,
           emailVerified: new Date(),
           image: null,
-          currency: 'USD',
+          currency: DEFAULT_CURRENCY,
           defaultCurrency: null,
           obapiProviderId: null,
           bankingId: null,
@@ -123,7 +124,13 @@ export const SelectUserOrGroup: React.FC<{
   const onGroupSelect = useCallback(
     (group: SelectableGroup) => {
       setGroup(group);
-      const { currentUser } = useAddExpenseStore.getState();
+      const { currentUser, actions } = useAddExpenseStore.getState();
+      // Alex hack: switch to the group's default currency, unless editing an existing expense.
+      if (!new URLSearchParams(window.location.search).has('expenseId')) {
+        actions.setCurrency(
+          pickDefaultCurrency(group.defaultCurrency, currentUser?.defaultCurrency),
+        );
+      }
       if (currentUser) {
         setParticipants([
           currentUser,

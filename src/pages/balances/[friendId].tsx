@@ -20,6 +20,7 @@ import { type GetServerSideProps } from 'next';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { CumulatedBalances } from '~/components/Expense/CumulatedBalances';
 import { deserializeDefaultSplit } from '~/lib/defaultSplit';
+import { DEFAULT_CURRENCY } from '~/lib/currency';
 
 const FriendPage: NextPageWithUser = ({ user }) => {
   const { t, displayName } = useTranslationWithUtils();
@@ -104,7 +105,7 @@ const FriendPage: NextPageWithUser = ({ user }) => {
                           bankingId: user.bankingId ?? null,
                           preferredLanguage: user.preferredLanguage ?? '',
                           hiddenFriendIds: user.hiddenFriendIds ?? [],
-                          currency: user.currency ?? 'USD',
+                          currency: user.currency ?? DEFAULT_CURRENCY,
                           defaultCurrency: user.defaultCurrency ?? null,
                         },
                         friendQuery.data,

@@ -12,6 +12,7 @@ import { Button } from '~/components/ui/button';
 import { useIntlCronParser } from '~/hooks/useIntlCronParser';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { cronFromBackend } from '~/lib/cron';
+import { DEFAULT_CURRENCY } from '~/lib/currency';
 import { type NextPageWithUser } from '~/types';
 import { type RouterOutputs, api } from '~/utils/api';
 import { withI18nStaticProps } from '~/utils/i18n/server';
@@ -106,7 +107,7 @@ const RecurringPage: NextPageWithUser = () => {
   const { cronParser, i18nReady } = useIntlCronParser();
 
   const { toUIString } = getCurrencyHelpersCached(
-    recurringExpensesQuery.data?.[0]?.expense.currency ?? 'USD',
+    recurringExpensesQuery.data?.[0]?.expense.currency ?? DEFAULT_CURRENCY,
   );
 
   const handleDelete = useCallback(

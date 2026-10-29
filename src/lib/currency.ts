@@ -839,5 +839,11 @@ export type CurrencyCode = keyof typeof CURRENCIES;
 export const isCurrencyCode = (value?: string | null): value is CurrencyCode =>
   !!value && value in CURRENCIES;
 
+export const DEFAULT_CURRENCY: CurrencyCode = 'GBP';
+
+// Alex hack: expenses start in an explicitly set default (group, then user), never the last used one.
+export const pickDefaultCurrency = (...candidates: (string | null | undefined)[]): CurrencyCode =>
+  candidates.find(isCurrencyCode) ?? DEFAULT_CURRENCY;
+
 export const parseCurrencyCode = (code: string): CurrencyCode =>
-  isCurrencyCode(code) ? code : 'USD';
+  isCurrencyCode(code) ? code : DEFAULT_CURRENCY;

@@ -3,7 +3,7 @@ import Router from 'next/router';
 import { create } from 'zustand';
 
 import { DEFAULT_CATEGORY } from '~/lib/category';
-import { type CurrencyCode } from '~/lib/currency';
+import { type CurrencyCode, DEFAULT_CURRENCY } from '~/lib/currency';
 import type { TransactionAddInputModel } from '~/types';
 import { shuffleArray } from '~/utils/array';
 import { BigMath } from '~/utils/numbers';
@@ -80,7 +80,7 @@ export const useAddExpenseStore = create<AddExpenseState>()((set) => ({
     [SplitType.ADJUSTMENT]: {},
     [SplitType.SETTLEMENT]: {},
   },
-  currency: 'USD',
+  currency: DEFAULT_CURRENCY,
   category: DEFAULT_CATEGORY,
   nameOrEmail: '',
   description: '',

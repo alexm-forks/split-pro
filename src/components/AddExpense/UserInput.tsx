@@ -2,6 +2,7 @@ import { useTranslation } from 'next-i18next';
 import Router from 'next/router';
 import { z } from 'zod';
 
+import { DEFAULT_CURRENCY, pickDefaultCurrency } from '~/lib/currency';
 import { useAddExpenseStore } from '~/store/addStore';
 import { api } from '~/utils/api';
 
@@ -18,6 +19,7 @@ export const UserInput: React.FC<{
     addOrUpdateParticipant,
     setParticipants,
     setGroup,
+    setCurrency,
   } = useAddExpenseStore((s) => s.actions);
   const nameOrEmail = useAddExpenseStore((s) => s.nameOrEmail);
   const participants = useAddExpenseStore((s) => s.participants);
@@ -37,6 +39,10 @@ export const UserInput: React.FC<{
         Router.push(`${currentPath}?${searchParams.toString()}`).catch(console.error);
 
         setGroup(undefined);
+        // Alex hack: back to the user's default currency, unless editing an existing expense.
+        if (!searchParams.has('expenseId')) {
+          setCurrency(pickDefaultCurrency(currentUser?.defaultCurrency));
+        }
 
         if (currentUser) {
           setParticipants([currentUser]);
@@ -61,7 +67,7 @@ export const UserInput: React.FC<{
         email: nameOrEmail,
         emailVerified: new Date(),
         image: null,
-        currency: 'USD',
+        currency: DEFAULT_CURRENCY,
         defaultCurrency: null,
         obapiProviderId: null,
         bankingId: null,
