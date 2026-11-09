@@ -141,6 +141,21 @@ describe('AddMembers', () => {
   });
 
   describe('Contact search', () => {
+    it('offers discoverable users who are not friends yet', async () => {
+      mockDiscoveryQuery.mockReturnValue({
+        data: [{ id: 7, name: 'Kim', image: null }],
+        isPending: false,
+        isError: false,
+        refetch: mockRefetch,
+      });
+      setup();
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ki' } });
+      expect(screen.queryByText('Alex')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Kim'));
+      fireEvent.click(screen.getByText('Submit'));
+      await waitFor(() => expect(mockAdd).toHaveBeenCalledWith({ groupId: 1, userIds: [7] }));
+    });
+
     it('trims searches before filtering contacts', () => {
       setup();
       fireEvent.change(screen.getByRole('textbox'), { target: { value: ' Alex ' } });

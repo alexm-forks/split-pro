@@ -37,6 +37,9 @@ const AddMembers: React.FC<{
   );
 
   const friendsQuery = api.user.getFriends.useQuery();
+  /* Alex hack: with ENABLE_USER_DISCOVERY, offer other users on the instance here too, as the
+     expense picker does upstream. */
+  const discoveryQuery = api.user.getDiscoverableUsers.useQuery();
   const addMembersMutation = api.group.addMembers.useMutation();
   const addFriendMutation = api.user.inviteFriend.useMutation();
 
@@ -54,7 +57,7 @@ const AddMembers: React.FC<{
   const searchValue = inputValue.trim().toLowerCase();
   const contactsFailed = friendsQuery.isError && undefined === friendsQuery.data;
 
-  const filteredUsers = friendsQuery.data?.filter(
+  const filteredUsers = [...(friendsQuery.data ?? []), ...(discoveryQuery.data ?? [])].filter(
     (friend) => !groupUserMap[friend.id] && displayName(friend).toLowerCase().includes(searchValue),
   );
 
@@ -64,7 +67,7 @@ const AddMembers: React.FC<{
       ? null
       : peopleListEmptyReason({
           isLoading: friendsQuery.isPending,
-          hasAnyContacts: 0 < (friendsQuery.data?.length ?? 0),
+          hasAnyContacts: 0 < (friendsQuery.data?.length ?? 0) + (discoveryQuery.data?.length ?? 0),
           isFiltering: '' !== searchValue,
         });
 
