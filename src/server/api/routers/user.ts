@@ -8,6 +8,7 @@ import {
   serializeDefaultSplit,
   toSortedFriendPair,
 } from '~/lib/defaultSplit';
+import { DEFAULT_CURRENCY } from '~/lib/currency';
 import { claimInviteCooldown } from '~/lib/inviteCooldown';
 import { InviteErrorCode } from '~/lib/error/invite';
 import { getUserBalances } from '~/server/api/services/balanceQuery';
@@ -131,6 +132,7 @@ export const userMethods = {
         create: {
           email: input.email,
           name: input.email.split('@')[0],
+          currency: DEFAULT_CURRENCY,
         },
       });
 

@@ -1,13 +1,13 @@
-import { CURRENCIES, type CurrencyCode, isCurrencyCode } from '~/lib/currency';
+import { CURRENCIES, type CurrencyCode, DEFAULT_CURRENCY, isCurrencyCode } from '~/lib/currency';
 
 export const getCurrencyHelpers = ({
   locale = 'en-US',
-  currency = 'USD',
+  currency = DEFAULT_CURRENCY,
 }: {
   locale?: string;
   currency?: string;
 }) => {
-  const normalizedCurrency = isCurrencyCode(currency) ? currency : 'USD';
+  const normalizedCurrency = isCurrencyCode(currency) ? currency : DEFAULT_CURRENCY;
   const { decimalDigits } = CURRENCIES[normalizedCurrency];
 
   const formatter = new Intl.NumberFormat(locale, {

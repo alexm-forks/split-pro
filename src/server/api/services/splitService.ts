@@ -11,7 +11,7 @@ import { sendExpensePushNotification } from './notificationService';
 import { createRecurringExpenseJob } from './scheduleService';
 import { getRecurrenceSchedule } from './recurrenceScheduleService';
 import { getCurrencyHelpers } from '~/utils/numbers';
-import { isCurrencyCode } from '~/lib/currency';
+import { DEFAULT_CURRENCY, isCurrencyCode } from '~/lib/currency';
 import { DEFAULT_CATEGORY } from '~/lib/category';
 import { extractTemplateExpenseId } from '~/lib/cron';
 
@@ -471,7 +471,7 @@ export async function importUserBalanceFromSplitWise(
 
       if (!currencyHelperCache[currency]) {
         currencyHelperCache[currency] = getCurrencyHelpers({
-          currency: isCurrencyCode(currency) ? currency : 'USD',
+          currency: isCurrencyCode(currency) ? currency : DEFAULT_CURRENCY,
         }).toSafeBigInt;
       }
 
@@ -534,6 +534,7 @@ async function createUsersFromSplitwise(users: SplitwiseUser[]) {
     data: newUsers.map((u) => ({
       email: u.email,
       name: `${u.first_name}${u.last_name ? ` ${u.last_name}` : ''}`,
+      currency: DEFAULT_CURRENCY,
     })),
   });
 

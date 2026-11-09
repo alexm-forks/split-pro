@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { type Participant, useAddExpenseStore } from '~/store/addStore';
 import { api } from '~/utils/api';
+import { pickDefaultCurrency } from '~/lib/currency';
 import { deserializeDefaultSplit } from '~/lib/defaultSplit';
 import {
   getInviteAppErrorCode,
@@ -124,7 +125,13 @@ export const SelectUserOrGroup: React.FC<{
   const onGroupSelect = useCallback(
     (selectedGroup: SelectableGroup) => {
       setGroup(selectedGroup);
-      const { currentUser } = useAddExpenseStore.getState();
+      const { currentUser, actions } = useAddExpenseStore.getState();
+      // Alex hack: switch to the group's default currency, unless editing an existing expense.
+      if (!new URLSearchParams(window.location.search).has('expenseId')) {
+        actions.setCurrency(
+          pickDefaultCurrency(selectedGroup.defaultCurrency, currentUser?.defaultCurrency),
+        );
+      }
       if (currentUser) {
         setParticipants([
           currentUser,
