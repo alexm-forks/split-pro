@@ -8,6 +8,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import KeycloakProvider from 'next-auth/providers/keycloak';
 
 import { env } from '~/env';
+import { DEFAULT_CURRENCY } from '~/lib/currency';
 import { db } from '~/server/db';
 import { sanitiseAdapterAccount } from '~/server/authAccount';
 import { parseEnvBoolean } from '~/utils/env';
@@ -86,7 +87,7 @@ const SplitProPrismaAdapter = (...args: Parameters<typeof PrismaAdapter>): Adapt
       }
 
       // oxlint-disable-next-line typescript/no-unsafe-return, typescript/no-unsafe-call
-      return prismaCreateUser(user);
+      return prismaCreateUser({ ...user, currency: DEFAULT_CURRENCY });
     },
     linkAccount: async (account: AdapterAccount) => {
       // oxlint-disable-next-line typescript/no-unsafe-assignment

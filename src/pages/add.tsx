@@ -6,7 +6,7 @@ import { AddOrEditExpensePage } from '~/components/AddExpense/AddExpensePage';
 import MainLayout from '~/components/Layout/MainLayout';
 import { env } from '~/env';
 import { cronFromBackend } from '~/lib/cron';
-import { parseCurrencyCode } from '~/lib/currency';
+import { parseCurrencyCode, pickDefaultCurrency } from '~/lib/currency';
 import { isBankConnectionConfigured } from '~/server/bankTransactionHelper';
 import { useAddExpenseStore } from '~/store/addStore';
 import { type NextPageWithUser } from '~/types';
@@ -74,13 +74,10 @@ const AddPage: NextPageWithUser<{
       obapiProviderId: user.obapiProviderId ?? null,
       bankingId: user.bankingId ?? null,
     });
-    if (router.isReady && !groupId) {
-      const preferredCurrency = user.currency ?? user.defaultCurrency;
-      if (preferredCurrency) {
-        setCurrency(parseCurrencyCode(preferredCurrency));
-      }
+    if (router.isReady && !groupId && !expenseId) {
+      setCurrency(pickDefaultCurrency(user.defaultCurrency));
     }
-  }, [setCurrentUser, setCurrency, groupId, router.isReady, user]);
+  }, [setCurrentUser, setCurrency, groupId, expenseId, router.isReady, user]);
 
   const parsedGroupId = isStringQueryParam(groupId) ? parseInt(groupId) : Number.NaN;
   const parsedFriendId = isStringQueryParam(friendId) ? parseInt(friendId) : Number.NaN;
@@ -133,11 +130,9 @@ const AddPage: NextPageWithUser<{
           .map((gu) => gu.user)
           .filter((groupUser) => groupUser.id !== currentUser.id),
       ]);
-      const preferredCurrency =
-        currentUser.currency ?? groupQuery.data.defaultCurrency ?? currentUser.defaultCurrency;
-      if (preferredCurrency) {
-        setCurrency(parseCurrencyCode(preferredCurrency));
-      }
+      setCurrency(
+        pickDefaultCurrency(groupQuery.data.defaultCurrency, currentUser.defaultCurrency),
+      );
       const parsedDefaultSplit = deserializeDefaultSplit(groupQuery.data.defaultSplit);
       if (parsedDefaultSplit) {
         applySplitPreset(parsedDefaultSplit.splitType, parsedDefaultSplit.shares);
