@@ -92,6 +92,8 @@ export const env = createEnv({
     OIDC_ALLOW_DANGEROUS_EMAIL_LINKING: z.boolean().default(false),
     OAUTH_AUTO_REDIRECT: z.boolean().default(false),
     UPLOAD_MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
+    // Alex hack: bearer token for SCIM provisioning from Pocket ID; unset turns /api/scim/v2 off.
+    SCIM_TOKEN: z.string().optional(),
   },
 
   /**
@@ -172,6 +174,7 @@ export const env = createEnv({
     UPLOAD_MAX_FILE_SIZE_MB: process.env.UPLOAD_MAX_FILE_SIZE_MB
       ? Number(process.env.UPLOAD_MAX_FILE_SIZE_MB)
       : 10,
+    SCIM_TOKEN: process.env.SCIM_TOKEN,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_GIT_SHA: process.env.NEXT_PUBLIC_GIT_SHA,
   },
