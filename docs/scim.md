@@ -34,8 +34,8 @@ and their first Pocket ID login lands on that account.
 - **Changed Pocket ID user:** name and email are updated. Pocket ID is the source of truth for
   names. An email that another Split Pro user already has is left unchanged, with a warning in
   the logs.
-- **Disabled, deleted or no-longer-allowed users are ignored**, along with their history.
-  Remove access in Pocket ID.
+- **Disabling, deleting or removing access in Pocket ID changes nothing in Split Pro**: the
+  account and its expense history stay. They can't log in once Pocket ID stops them.
 - **Groups** are accepted so Pocket ID's sync succeeds, but not stored: Pocket ID groups aren't
   Split Pro groups.
 
