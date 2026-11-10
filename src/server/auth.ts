@@ -11,6 +11,7 @@ import { env } from '~/env';
 import { DEFAULT_CURRENCY } from '~/lib/currency';
 import { db } from '~/server/db';
 import { sanitiseAdapterAccount } from '~/server/authAccount';
+import { oidcProviderId } from '~/server/oidcProvider';
 import { parseEnvBoolean } from '~/utils/env';
 
 import { mailServerConfig, sendSignUpEmail } from './mailer';
@@ -259,7 +260,7 @@ function getProviders() {
 
   if (env.OIDC_CLIENT_ID && env.OIDC_CLIENT_SECRET && env.OIDC_WELL_KNOWN_URL) {
     providersList.push({
-      id: env.OIDC_NAME?.toLowerCase() ?? 'oidc',
+      id: oidcProviderId(),
       name: env.OIDC_NAME ?? 'OIDC',
       clientId: env.OIDC_CLIENT_ID,
       clientSecret: env.OIDC_CLIENT_SECRET,

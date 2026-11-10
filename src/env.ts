@@ -91,6 +91,8 @@ export const env = createEnv({
     UPLOAD_MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
     // Alex hack: REST API keys as comma-separated `email:secret` pairs (no ApiKey table).
     API_KEYS: z.string().optional(),
+    // Alex hack: bearer token for SCIM provisioning from Pocket ID; unset turns /api/scim/v2 off.
+    SCIM_TOKEN: z.string().optional(),
   },
 
   /**
@@ -169,6 +171,7 @@ export const env = createEnv({
       ? Number(process.env.UPLOAD_MAX_FILE_SIZE_MB)
       : 10,
     API_KEYS: process.env.API_KEYS,
+    SCIM_TOKEN: process.env.SCIM_TOKEN,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_GIT_SHA: process.env.NEXT_PUBLIC_GIT_SHA,
   },

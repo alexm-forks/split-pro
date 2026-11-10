@@ -37,7 +37,7 @@ export const parseConfiguredApiKeys = (value: string | undefined): ConfiguredApi
 const sha256 = (value: string) => createHash('sha256').update(value).digest();
 
 /** Constant-time comparison (hashing first so differing lengths don't leak). */
-const keysMatch = (a: string, b: string) => timingSafeEqual(sha256(a), sha256(b));
+export const keysMatch = (a: string, b: string) => timingSafeEqual(sha256(a), sha256(b));
 
 /**
  * Extract a bearer token from request headers. Accepts `Authorization: Bearer
