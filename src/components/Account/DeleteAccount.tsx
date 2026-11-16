@@ -15,7 +15,8 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
-import { api } from '~/utils/api';
+import { api, getQueryClient } from '~/utils/api';
+import { clearOfflineData } from '~/components/Offline/offlineQueue';
 
 export const DeleteAccount = () => {
   const { t } = useTranslation();
@@ -40,6 +41,7 @@ export const DeleteAccount = () => {
     }
 
     try {
+      clearOfflineData(getQueryClient());
       await signOut({ redirect: false });
     } finally {
       try {

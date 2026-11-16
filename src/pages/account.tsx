@@ -34,7 +34,8 @@ import {
   isBankConnectionConfigured,
   whichBankConnectionConfigured,
 } from '~/server/bankTransactionHelper';
-import { api } from '~/utils/api';
+import { api, getQueryClient } from '~/utils/api';
+import { clearOfflineData } from '~/components/Offline/offlineQueue';
 import type { NextPageWithUser } from '~/types';
 import { DebugInfo } from '~/components/Account/DebugInfo';
 import { useAppStore } from '~/store/appStore';
@@ -93,6 +94,7 @@ const AccountPage: NextPageWithUser<{
   );
 
   const onSignOut = useCallback(async () => {
+    clearOfflineData(getQueryClient());
     await signOut({ redirect: false });
     void router.push('/auth/signin', '/auth/signin', { locale: 'default' });
   }, [router]);

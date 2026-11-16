@@ -4,6 +4,7 @@ import React, { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { DEFAULT_CATEGORY } from '~/lib/category';
+import { noticeIfQueued } from '~/components/Offline/offlineQueue';
 import { useRequestId } from '~/hooks/useRequestId';
 import { api } from '~/utils/api';
 import { BigMath } from '~/utils/numbers';
@@ -82,6 +83,7 @@ export const GroupSettleUp: React.FC<{
         paidBy: sender.id,
         category: DEFAULT_CATEGORY,
         requestId,
+        expenseDate: new Date(),
       },
       {
         onSuccess: () => {
@@ -94,6 +96,7 @@ export const GroupSettleUp: React.FC<{
         },
       },
     );
+    noticeIfQueued(t('offline.queued'));
   }, [
     sender,
     receiver,

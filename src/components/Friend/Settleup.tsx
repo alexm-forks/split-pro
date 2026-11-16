@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 
 import { DEFAULT_CATEGORY } from '~/lib/category';
+import { noticeIfQueued } from '~/components/Offline/offlineQueue';
 import { useRequestId } from '~/hooks/useRequestId';
 import { api } from '~/utils/api';
 import { BigMath } from '~/utils/numbers';
@@ -105,6 +106,7 @@ const SettleUpWithBalances: React.FC<{
         category: DEFAULT_CATEGORY,
         groupId: balanceToSettle.groupId,
         requestId,
+        expenseDate: new Date(),
       },
       {
         onSuccess: () => {
@@ -118,6 +120,7 @@ const SettleUpWithBalances: React.FC<{
         },
       },
     );
+    noticeIfQueued(t('offline.queued'));
   }, [
     balanceToSettle,
     amount,

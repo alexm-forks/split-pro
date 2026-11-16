@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import React, { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 
+import { noticeIfQueued } from '~/components/Offline/offlineQueue';
 import { useRequestId } from '~/hooks/useRequestId';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { DEFAULT_CATEGORY } from '~/lib/category';
@@ -120,6 +121,7 @@ export const JointSettleUp: React.FC<{
         paidBy: part.payer.id,
         category: DEFAULT_CATEGORY,
         requestId: `${requestId}-${index}`,
+        expenseDate: new Date(),
       })),
       {
         onSuccess: () => {
@@ -132,6 +134,7 @@ export const JointSettleUp: React.FC<{
         },
       },
     );
+    noticeIfQueued(t('offline.queued'));
   };
 
   return (
