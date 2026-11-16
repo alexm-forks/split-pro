@@ -8,6 +8,7 @@ import React, { useCallback } from 'react';
 import { type CurrencyCode } from '~/lib/currency';
 import { useAddExpenseStore } from '~/store/addStore';
 import { api } from '~/utils/api';
+import { useRequestId } from '~/hooks/useRequestId';
 
 import { toast } from 'sonner';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
@@ -83,6 +84,8 @@ export const AddOrEditExpensePage: React.FC<{
   const addExpenseMutation = api.expense.addOrEditExpense.useMutation({
     onSuccess: () => apiUtils.expense.invalidate(),
   });
+  // Alex hack: the same id on retries and repeated taps, renewed once saved.
+  const [requestId, renewRequestId] = useRequestId();
   const updateProfile = api.user.updateUserDetail.useMutation();
   const { update } = useSession();
 
@@ -146,10 +149,12 @@ export const AddOrEditExpensePage: React.FC<{
             expenseId,
             transactionId,
             cronExpression: cronExpression ? cronToBackend(cronExpression) : undefined,
+            requestId,
           },
         ],
         {
           onSuccess: (d) => {
+            renewRequestId();
             if (d) {
               if (multipleTransactions.length > 0) {
                 const allTransactions = [...multipleTransactions];
@@ -230,6 +235,8 @@ export const AddOrEditExpensePage: React.FC<{
     setSingleTransaction,
     t,
     update,
+    requestId,
+    renewRequestId,
   ]);
 
   const handleDescriptionChange = useCallback(

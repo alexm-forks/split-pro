@@ -4,6 +4,7 @@ import React, { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { DEFAULT_CATEGORY } from '~/lib/category';
+import { useRequestId } from '~/hooks/useRequestId';
 import { api } from '~/utils/api';
 import { BigMath } from '~/utils/numbers';
 
@@ -39,6 +40,7 @@ export const GroupSettleUp: React.FC<{
 
   const addExpenseMutation = api.expense.addOrEditExpense.useMutation();
   const utils = api.useUtils();
+  const [requestId, renewRequestId] = useRequestId();
 
   const isUserPaying = 0 > _amount;
   const sender = isUserPaying ? user : friend;
@@ -79,9 +81,11 @@ export const GroupSettleUp: React.FC<{
         ],
         paidBy: sender.id,
         category: DEFAULT_CATEGORY,
+        requestId,
       },
       {
         onSuccess: () => {
+          renewRequestId();
           utils.group.invalidate().catch(console.error);
         },
         onError: (error) => {
@@ -90,7 +94,18 @@ export const GroupSettleUp: React.FC<{
         },
       },
     );
-  }, [sender, receiver, amount, utils, addExpenseMutation, currency, groupId, t]);
+  }, [
+    sender,
+    receiver,
+    amount,
+    utils,
+    addExpenseMutation,
+    currency,
+    groupId,
+    t,
+    requestId,
+    renewRequestId,
+  ]);
 
   return (
     <AppDrawer

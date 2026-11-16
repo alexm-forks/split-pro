@@ -15,6 +15,7 @@ import {
 } from '~/server/api/trpc';
 import { sendGroupSimplifyDebtsToggleNotification } from '~/server/api/services/notificationService';
 import { getHouseholds, setHouseholds } from '~/server/jointFinances';
+import { runOnce } from '~/server/requestIds';
 import { SplitType } from '@prisma/client';
 import {
   defaultSplitInputSchema,
@@ -30,23 +31,29 @@ import {
  */
 export const groupMethods = {
   create: protectedProcedure
-    .input(z.object({ name: z.string().min(1) }))
-    .mutation(async ({ ctx, input }) => {
-      const group = await ctx.db.group.create({
-        data: {
-          name: input.name,
-          publicId: nanoid(),
-          userId: ctx.session.user.id,
-          groupUsers: {
-            create: {
+    // Alex hack: requestId makes a retried create return the original group.
+    .input(z.object({ name: z.string().min(1), requestId: z.string().min(1).max(100).optional() }))
+    .mutation(async ({ ctx, input }) =>
+      runOnce(
+        ctx.db,
+        { userId: ctx.session.user.id, scope: 'group', requestId: input.requestId },
+        () =>
+          ctx.db.group.create({
+            data: {
+              name: input.name,
+              publicId: nanoid(),
               userId: ctx.session.user.id,
+              groupUsers: {
+                create: {
+                  userId: ctx.session.user.id,
+                },
+              },
             },
-          },
-        },
-      });
-
-      return group;
-    }),
+          }),
+        (group) => String(group.id),
+        (id) => ctx.db.group.findUnique({ where: { id: Number(id) } }),
+      ),
+    ),
 
   getAllGroups: protectedProcedure.query(async ({ ctx }) => {
     const groups = await ctx.db.groupUser.findMany({
