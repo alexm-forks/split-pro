@@ -44,6 +44,37 @@ const ignoreAddQuery: SerwistPlugin = {
   },
 };
 
+/*
+ * The app starts at `/`, which only redirects (to the locale root, then the home page). Some
+ * browsers (Firefox) can't replay those redirects from the cache, so a cold start with no signal
+ * had nothing to show. Offline, a page that isn't cached is sent to a cached copy of it in any
+ * locale (`/groups/1` -> `/en/groups/1`), and `/` or a locale root to the first cached main page,
+ * the landing page last.
+ */
+const MAIN_PAGES = ['/balances', '/groups', '/activity', '/home'];
+const LOCALE_PREFIX = /^\/[a-z]{2}(?:-[A-Z]{2})?(?=\/|$)/;
+const withoutLocale = (pathname: string) =>
+  pathname.replace(LOCALE_PREFIX, '').replace(/\/$/, '') || '/';
+
+const cachedLocalisedPage: SerwistPlugin = {
+  handlerDidError: async ({ request }) => {
+    const url = new URL(request.url);
+    const path = withoutLocale(url.pathname);
+    const wanted = '/' === path ? MAIN_PAGES : [path];
+    const cache = await caches.open('pages');
+    const cached = (await cache.keys())
+      .map((key) => new URL(key.url))
+      .filter((key) => LOCALE_PREFIX.test(key.pathname) && key.pathname !== url.pathname);
+    for (const page of wanted) {
+      const hit = cached.find((key) => withoutLocale(key.pathname) === page);
+      if (hit) {
+        return Response.redirect(`${hit.pathname}${'/' === path ? '' : url.search}`, 302);
+      }
+    }
+    return undefined;
+  },
+};
+
 const patchySignalCaching: RuntimeCaching[] = [
   {
     // The signed-in session, so pages opened offline don't think you've signed out.
@@ -61,7 +92,7 @@ const patchySignalCaching: RuntimeCaching[] = [
     handler: new NetworkFirst({
       cacheName: 'pages',
       networkTimeoutSeconds: NETWORK_TIMEOUT_SECONDS,
-      plugins: [ignoreAddQuery, new ExpirationPlugin({ maxEntries: 64 })],
+      plugins: [ignoreAddQuery, cachedLocalisedPage, new ExpirationPlugin({ maxEntries: 64 })],
     }),
   },
   {
