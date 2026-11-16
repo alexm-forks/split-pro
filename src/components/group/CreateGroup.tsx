@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { AppDrawer } from '~/components/ui/drawer';
 import { Input } from '~/components/ui/input';
+import { useRequestId } from '~/hooks/useRequestId';
 import { api } from '~/utils/api';
 
 import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form';
@@ -26,6 +27,7 @@ export const CreateGroup: React.FC<{ children: React.ReactNode }> = ({ children 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const createGroup = api.group.create.useMutation(undefined);
+  const [requestId, renewRequestId] = useRequestId();
   const utils = api.useUtils();
 
   const groupForm = useForm<CreateGroupFormValues>({
@@ -39,9 +41,10 @@ export const CreateGroup: React.FC<{ children: React.ReactNode }> = ({ children 
   const onGroupSubmit = useCallback(
     async (values: CreateGroupFormValues) => {
       await createGroup.mutateAsync(
-        { name: values.name },
+        { name: values.name, requestId },
         {
           onSuccess: (data) => {
+            renewRequestId();
             utils.group.getAllGroupsWithBalances.refetch().catch(console.error);
             router
               .push(`/groups/${data.id}`)
@@ -51,7 +54,7 @@ export const CreateGroup: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       );
     },
-    [router, createGroup, utils.group.getAllGroupsWithBalances],
+    [router, createGroup, utils.group.getAllGroupsWithBalances, requestId, renewRequestId],
   );
 
   const handleOpenChange = useCallback(
@@ -102,6 +105,7 @@ export const CreateGroup: React.FC<{ children: React.ReactNode }> = ({ children 
         className="h-[70vh]"
         actionTitle={t('actions.submit')}
         actionOnClick={handleActionClick}
+        actionDisabled={createGroup.isPending}
       >
         <div className="w-full">
           <Form {...groupForm}>

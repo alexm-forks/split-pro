@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import React, { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useRequestId } from '~/hooks/useRequestId';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { DEFAULT_CATEGORY } from '~/lib/category';
 import { api } from '~/utils/api';
@@ -77,6 +78,7 @@ export const JointSettleUp: React.FC<{
 
   const addExpenseMutation = api.expense.addOrEditExpense.useMutation();
   const utils = api.useUtils();
+  const [requestId, renewRequestId] = useRequestId();
 
   const you = t('actors.you');
   const parts = settlementParts(
@@ -105,7 +107,7 @@ export const JointSettleUp: React.FC<{
       return;
     }
     addExpenseMutation.mutate(
-      parts.map((part) => ({
+      parts.map((part, index) => ({
         name: t('ui.settle_up_name'),
         currency,
         amount: part.amount,
@@ -117,9 +119,11 @@ export const JointSettleUp: React.FC<{
         ],
         paidBy: part.payer.id,
         category: DEFAULT_CATEGORY,
+        requestId: `${requestId}-${index}`,
       })),
       {
         onSuccess: () => {
+          renewRequestId();
           utils.group.invalidate().catch(console.error);
         },
         onError: (error) => {

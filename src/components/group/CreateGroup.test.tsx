@@ -48,7 +48,10 @@ describe('CreateGroup', () => {
     await user.type(await screen.findByPlaceholderText('Group name'), 'Trip');
     await user.click(screen.getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith('/groups/42'));
-    expect(mutateAsync).toHaveBeenCalledWith({ name: 'Trip' }, expect.anything());
+    expect(mutateAsync).toHaveBeenCalledWith(
+      { name: 'Trip', requestId: expect.any(String) },
+      expect.anything(),
+    );
     expect(refetch).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });

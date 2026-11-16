@@ -1174,6 +1174,7 @@
                     "transactionId": { "type": "string" },
                     "conversionToId": { "type": "string" },
                     "expenseId": { "type": "string" },
+                    "requestId": { "type": "string" },
                     "cronExpression": { "type": "string" },
                     "initialComment": { "type": "string" }
                   },

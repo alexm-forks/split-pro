@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 
 import { DEFAULT_CATEGORY } from '~/lib/category';
+import { useRequestId } from '~/hooks/useRequestId';
 import { api } from '~/utils/api';
 import { BigMath } from '~/utils/numbers';
 
@@ -77,6 +78,7 @@ const SettleUpWithBalances: React.FC<{
 
   const addExpenseMutation = api.expense.addOrEditExpense.useMutation();
   const utils = api.useUtils();
+  const [requestId, renewRequestId] = useRequestId();
 
   const saveExpense = React.useCallback(() => {
     if (!balanceToSettle || !amount || !currentUser) {
@@ -102,9 +104,11 @@ const SettleUpWithBalances: React.FC<{
         paidBy: isCurrentUserPaying ? currentUser.id : friend.id,
         category: DEFAULT_CATEGORY,
         groupId: balanceToSettle.groupId,
+        requestId,
       },
       {
         onSuccess: () => {
+          renewRequestId();
           utils.user.invalidate().catch(console.error);
           utils.expense.invalidate().catch(console.error);
         },
@@ -123,6 +127,8 @@ const SettleUpWithBalances: React.FC<{
     addExpenseMutation,
     utils,
     t,
+    requestId,
+    renewRequestId,
   ]);
 
   const onCurrencyInputValueChange = React.useCallback(

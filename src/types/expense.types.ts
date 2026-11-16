@@ -31,6 +31,8 @@ export type CreateExpense = Omit<
   expenseId?: string;
   transactionId?: string;
   participants: Omit<ExpenseParticipant, 'expenseId'>[];
+  // Alex hack: the same id on every retry of one action, so it's only applied once.
+  requestId?: string;
 };
 
 export const createExpenseSchema = z.object({
@@ -56,6 +58,7 @@ export const createExpenseSchema = z.object({
   expenseDate: z.date().optional(),
   expenseId: z.string().optional(),
   conversionToId: z.string().optional(),
+  requestId: z.string().min(1).max(100).optional(),
   cronExpression: z
     .string()
     .transform((value) => (value ? cronToBackend(value) : ''))

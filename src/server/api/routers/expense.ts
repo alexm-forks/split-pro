@@ -16,6 +16,7 @@ import {
 } from '~/server/api/trpc';
 import { paginationInput as apiPaginationInput, paginatedResult } from '~/server/api/pagination';
 import { db } from '~/server/db';
+import { runOnce } from '~/server/requestIds';
 import {
   type CreateExpense,
   arrayify,
@@ -48,40 +49,50 @@ const upsertExpenses = async (expenses: CreateExpense[], userId: number) => {
   // Expense writes must preserve input order and stop on the first validation/write failure.
   // oxlint-disable no-await-in-loop
   for (const input of expenses) {
-    const storedGroupId = await validateExpenseWritePermission(
-      input.expenseId,
-      input.groupId,
-      userId,
+    // Alex hack: a retried request (same requestId) returns the original expense.
+    const expense = await runOnce(
+      db,
+      { userId, scope: 'expense', requestId: input.requestId },
+      async () => {
+        const storedGroupId = await validateExpenseWritePermission(
+          input.expenseId,
+          input.groupId,
+          userId,
+        );
+        if (input.splitType === SplitType.CURRENCY_CONVERSION) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid split type' });
+        }
+
+        if (input.expenseId) {
+          await assertExpenseGroupReassignment(
+            storedGroupId,
+            input.groupId,
+            input.paidBy,
+            input.participants.map((participant) => participant.userId),
+          );
+        }
+
+        try {
+          const expense = input.expenseId
+            ? await editExpense(input, userId)
+            : await createExpense(input, userId);
+
+          return expense;
+        } catch (error) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          console.error(error);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create expense',
+          });
+        }
+      },
+      (created) => created.id,
+      (id) => db.expense.findUnique({ where: { id } }),
     );
-    if (input.splitType === SplitType.CURRENCY_CONVERSION) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid split type' });
-    }
-
-    if (input.expenseId) {
-      await assertExpenseGroupReassignment(
-        storedGroupId,
-        input.groupId,
-        input.paidBy,
-        input.participants.map((participant) => participant.userId),
-      );
-    }
-
-    try {
-      const expense = input.expenseId
-        ? await editExpense(input, userId)
-        : await createExpense(input, userId);
-
-      results.push(expense);
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-      console.error(error);
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to create expense',
-      });
-    }
+    results.push(expense);
   }
   // oxlint-enable no-await-in-loop
 
