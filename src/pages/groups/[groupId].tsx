@@ -25,6 +25,8 @@ import { BalanceList } from '~/components/Expense/BalanceList';
 import { ExpenseList } from '~/components/Expense/ExpenseList';
 import AddMembers from '~/components/group/AddMembers';
 import GroupMyBalance from '~/components/group/GroupMyBalance';
+import { JointBalanceList } from '~/components/JointFinances/JointBalanceList';
+import { JointFinancesSettings } from '~/components/JointFinances/JointFinancesSettings';
 import NoMembers from '~/components/group/NoMembers';
 import MainLayout from '~/components/Layout/MainLayout';
 import { EntityAvatar } from '~/components/ui/avatar';
@@ -395,6 +397,16 @@ const BalancePage: NextPageWithUser<{
                   <p>{toUIDate(groupDetailQuery.data.createdAt, { year: true })}</p>
                 </div>
               )}
+              {groupDetailQuery.data ? (
+                <JointFinancesSettings
+                  groupId={groupId}
+                  users={groupDetailQuery.data.groupUsers.map((gu) => gu.user)}
+                  households={groupDetailQuery.data.jointFinances.households}
+                  simplifyDebts={groupDetailQuery.data.simplifyDebts}
+                  disabled={isArchived}
+                  onChanged={() => void groupDetailQuery.refetch()}
+                />
+              ) : null}
               <div className="mt-8">
                 <p className="font-semibold">{t('group_details.group_info.actions')}</p>
                 <div className="child:h-7 mt-2 flex flex-col gap-4">
@@ -532,6 +544,7 @@ const BalancePage: NextPageWithUser<{
                 groupBalances={groupDetailQuery.data?.groupBalances}
                 users={groupDetailQuery.data?.groupUsers.map((gu) => gu.user)}
                 groupId={groupId}
+                jointFinances={groupDetailQuery.data?.jointFinances}
               />
             </div>
             <div className="mb-4 flex justify-center gap-2 overflow-y-auto border-b pb-4">
@@ -590,10 +603,18 @@ const BalancePage: NextPageWithUser<{
                 />
               </TabsContent>
               <TabsContent value="balances">
-                <BalanceList
-                  groupBalances={groupDetailQuery.data?.groupBalances}
-                  users={groupDetailQuery.data?.groupUsers.map((gu) => gu.user)}
-                />
+                {groupDetailQuery.data?.jointFinances.active ? (
+                  <JointBalanceList
+                    jointFinances={groupDetailQuery.data.jointFinances}
+                    users={groupDetailQuery.data.groupUsers.map((gu) => gu.user)}
+                    groupId={groupId}
+                  />
+                ) : (
+                  <BalanceList
+                    groupBalances={groupDetailQuery.data?.groupBalances}
+                    users={groupDetailQuery.data?.groupUsers.map((gu) => gu.user)}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </div>

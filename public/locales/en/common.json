@@ -597,5 +597,26 @@
     "edit_label": "Edit comment",
     "delete_confirm": "Delete this comment?",
     "error": "Could not save the comment"
+  },
+  "joint_finances": {
+    "title": "Joint finances",
+    "description": "People in a household never owe each other in this group, and settle up with everyone else together.",
+    "needs_simplify": "Only applies while Simplify debts is on.",
+    "none": "No households.",
+    "add_household": "Add household",
+    "edit_household": "Edit household",
+    "remove_household": "Remove household",
+    "choose_members": "Choose two or more people who share their finances. Someone can only be in one household.",
+    "updated": "Joint finances updated",
+    "owes": "{party} owe",
+    "lent": "{party} are owed",
+    "settled": "{party} are settled up",
+    "own_shares": "Own shares",
+    "pays": "{payer} {plural, select, yes {pay} other {pays}} {amount} to {receiver}",
+    "household_owes_you": "{friend} owe you {amount}",
+    "paid_by": "Paid by",
+    "paid_to": "Paid to",
+    "joint_account": "Joint account (split equally)",
+    "joint_split_note": "Recorded as {count, plural, one {# settlement} other {# settlements}}, one per person."
   }
 }

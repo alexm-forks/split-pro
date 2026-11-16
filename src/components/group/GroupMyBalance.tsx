@@ -2,7 +2,9 @@ import { type BalanceView, type User } from '@prisma/client';
 import React, { useMemo } from 'react';
 
 import { CumulatedBalances } from '~/components/Expense/CumulatedBalances';
+import { buildParties, partyName } from '~/components/JointFinances/parties';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
+import { type JointFinances, partyOf } from '~/lib/jointFinances';
 import { BigMath } from '~/utils/numbers';
 
 interface GroupMyBalanceProps {
@@ -10,6 +12,7 @@ interface GroupMyBalanceProps {
   groupBalances?: BalanceView[];
   users?: User[];
   groupId: number;
+  jointFinances?: JointFinances;
 }
 
 const GroupMyBalance: React.FC<GroupMyBalanceProps> = ({
@@ -17,6 +20,7 @@ const GroupMyBalance: React.FC<GroupMyBalanceProps> = ({
   groupBalances = [],
   users = [],
   groupId,
+  jointFinances,
 }) => {
   const { t, displayName, getCurrencyHelpersCached } = useTranslationWithUtils();
 
@@ -29,10 +33,31 @@ const GroupMyBalance: React.FC<GroupMyBalanceProps> = ({
     [users],
   );
 
+  // Alex hack: with joint finances, balances are between parties (people or households), and
+  // "mine" are my household's. Party ids double as friend keys (households are negative).
+  const joint = jointFinances?.active ? jointFinances : undefined;
+  const parties = useMemo(
+    () => (joint ? buildParties(users, joint.households) : []),
+    [joint, users],
+  );
+  const rows = useMemo(
+    () =>
+      joint
+        ? joint.balances.map((b) => ({
+            userId: b.partyId,
+            friendId: b.friendPartyId,
+            currency: b.currency,
+            amount: b.amount,
+          }))
+        : groupBalances,
+    [joint, groupBalances],
+  );
+  const myId = joint ? partyOf(joint.households)(userId) : userId;
+
   const friendBalances = useMemo(
     () =>
-      groupBalances.reduce<Record<number, Record<string, bigint>>>((acc, balance) => {
-        if (balance.userId === userId && 0 < BigMath.abs(balance.amount)) {
+      rows.reduce<Record<number, Record<string, bigint>>>((acc, balance) => {
+        if (balance.userId === myId && 0 < BigMath.abs(balance.amount)) {
           acc[balance.friendId] ??= {};
           const friendBalance = acc[balance.friendId]!;
           friendBalance[balance.currency] =
@@ -40,7 +65,7 @@ const GroupMyBalance: React.FC<GroupMyBalanceProps> = ({
         }
         return acc;
       }, {}),
-    [groupBalances, userId],
+    [rows, myId],
   );
 
   const cumulatedBalances = useMemo(
@@ -67,16 +92,22 @@ const GroupMyBalance: React.FC<GroupMyBalanceProps> = ({
           .slice(0, 2)
           .map(([friendId, balances]) => {
             const friend = userMap[+friendId];
+            const household = parties.find((party) => party.household && party.id === +friendId);
+            const friendName = household
+              ? partyName(household, displayName, userId, t('actors.you'))
+              : displayName(friend);
             return (
               <div key={friendId} className="text-sm text-gray-500">
                 {Object.entries(balances).map(([currency, amount]) => (
                   <div key={currency}>
                     {t(
                       0 < amount
-                        ? 'balance_summary.friend_owes_you'
+                        ? household
+                          ? 'joint_finances.household_owes_you'
+                          : 'balance_summary.friend_owes_you'
                         : 'balance_summary.you_owe_friend',
                       {
-                        friend: displayName(friend),
+                        friend: friendName,
                         amount: getCurrencyHelpersCached(currency).toUIString(amount),
                       },
                     )}
