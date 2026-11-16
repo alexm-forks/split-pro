@@ -618,5 +618,11 @@
     "paid_to": "Paid to",
     "joint_account": "Joint account (split equally)",
     "joint_split_note": "Recorded as {count, plural, one {# settlement} other {# settlements}}, one per person."
+  },
+  "offline": {
+    "title": "You're offline",
+    "description": "This page hasn't been opened on this device before, so it can't load without a connection. Pages you've opened before still work, and anything you add is sent when you're back online.",
+    "retry": "Try again",
+    "home": "Home"
   }
 }
