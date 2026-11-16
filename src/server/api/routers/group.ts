@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
 import { computeMemberTotals, currenciesByUse } from '~/lib/groupStatistics';
+import { computeJointFinances, normaliseHouseholds } from '~/lib/jointFinances';
 import { simplifyDebts } from '~/lib/simplify';
 import { NON_SPENDING_SPLIT_TYPES } from '~/lib/splitTypes';
 import {
@@ -13,6 +14,7 @@ import {
   protectedProcedure,
 } from '~/server/api/trpc';
 import { sendGroupSimplifyDebtsToggleNotification } from '~/server/api/services/notificationService';
+import { getHouseholds, setHouseholds } from '~/server/jointFinances';
 import { SplitType } from '@prisma/client';
 import {
   defaultSplitInputSchema,
@@ -184,6 +186,16 @@ export const groupMethods = {
       return group;
     }
 
+    // Alex hack: joint finances, from the raw balances before simplification.
+    const jointFinances = computeJointFinances(
+      group.groupBalances,
+      normaliseHouseholds(
+        await getHouseholds(ctx.db, group.id),
+        group.groupUsers.map((groupUser) => groupUser.userId),
+      ),
+      group.simplifyDebts,
+    );
+
     if (group.simplifyDebts) {
       group.groupBalances = simplifyDebts(group.groupBalances);
     }
@@ -198,8 +210,40 @@ export const groupMethods = {
     return {
       ...group,
       defaultSplit,
+      jointFinances,
     };
   }),
+
+  // Alex hack: mark people in a group as households with joint finances (any group member).
+  setJointFinances: groupProcedure
+    .input(z.object({ groupId: z.number(), households: z.array(z.array(z.number().int())) }))
+    .mutation(async ({ input, ctx }) => {
+      const group = await ctx.db.group.findUnique({
+        where: { id: input.groupId },
+        select: { archivedAt: true, groupUsers: { select: { userId: true } } },
+      });
+      if (!group) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Group not found' });
+      }
+      if (group.archivedAt) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Group is archived' });
+      }
+      const memberIds = group.groupUsers.map((groupUser) => groupUser.userId);
+      const households = normaliseHouseholds(input.households, memberIds);
+      const requested = input.households.filter((household) => 0 < household.length);
+      if (
+        households.length !== requested.length ||
+        households.some((household, index) => household.length !== requested[index]!.length)
+      ) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            'Each household needs two or more group members, and nobody can be in two households',
+        });
+      }
+      await setHouseholds(ctx.db, input.groupId, households);
+      return households;
+    }),
 
   getGroupTotals: groupProcedure.query(async ({ input, ctx }) => {
     const totals = await ctx.db.expense.groupBy({
