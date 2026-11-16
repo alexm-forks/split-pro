@@ -15,6 +15,7 @@ import { ThemeProvider } from 'next-themes';
 import { CurrencyHelpersProvider } from '~/contexts/CurrencyHelpersContext';
 import { BalanceDateProvider } from '~/contexts/BalanceDateContext';
 import { useAppStore } from '~/store/appStore';
+import { OfflineSync } from '~/components/Offline/OfflineSync';
 import { api } from '~/utils/api';
 
 import 'react-easy-crop/react-easy-crop.css';
@@ -82,7 +83,9 @@ const MyApp = ({ Component, pageProps: { session, ...pageProps } }: AppPropsWith
         <meta property="og:url" content={baseUrl} />
         <meta property="og:image" content={`${baseUrl}/og_banner.png`} />
       </Head>
-      <SerwistProvider swUrl="/serwist/sw.js">
+      {/* Alex hack: no full reload whenever signal returns; on patchy signal that threw away
+          what you were typing and interrupted queued saves. Data refreshes on reconnect anyway. */}
+      <SerwistProvider swUrl="/serwist/sw.js" reloadOnOnline={false}>
         <SessionProvider session={session}>
           <CurrencyHelpersProvider>
             <ThemeProvider attribute="class" defaultTheme="dark">
@@ -184,6 +187,7 @@ const Auth: React.FC<{ Page: PageWithAuth; pageProps: AppProps['pageProps'] }> =
 
   return (
     <BalanceDateProvider enabled={balanceSettings.data?.excludeFutureExpenses ?? false}>
+      <OfflineSync userId={data.user.id} />
       <Page user={data.user} {...pageProps} />
     </BalanceDateProvider>
   );

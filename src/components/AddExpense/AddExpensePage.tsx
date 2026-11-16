@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import { TRPCClientError } from '@trpc/client';
 import { HeartHandshakeIcon, Landmark, MessageSquare, RefreshCcwDot, X } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
@@ -32,6 +33,7 @@ import { currencyConversion } from '~/utils/numbers';
 import { CurrencyConversionIcon } from '../ui/categoryIcons';
 import { useSession } from 'next-auth/react';
 import { isStringQueryParam } from '~/utils/queryParams';
+import { noticeIfQueued } from '~/components/Offline/offlineQueue';
 
 export const AddOrEditExpensePage: React.FC<{
   enableSendingInvites: boolean;
@@ -128,79 +130,96 @@ export const AddOrEditExpensePage: React.FC<{
 
     const sign = isNegative ? -1n : 1n;
 
-    try {
-      await addExpenseMutation.mutateAsync(
-        [
-          {
-            name: description,
-            initialComment: expenseId ? undefined : initialComment,
-            currency,
-            amount: amount * sign,
-            groupId: group?.id ?? null,
-            splitType,
-            participants: participants.map((p) => ({
-              userId: p.id,
-              amount: (p.amount ?? 0n) * sign,
-            })),
-            paidBy: paidBy.id,
-            category,
-            fileKey,
-            expenseDate,
-            expenseId,
-            transactionId,
-            cronExpression: cronExpression ? cronToBackend(cronExpression) : undefined,
-            requestId,
-          },
-        ],
-        {
-          onSuccess: (d) => {
-            renewRequestId();
-            if (d) {
-              if (multipleTransactions.length > 0) {
-                const allTransactions = [...multipleTransactions];
-                const transactionToAdd = allTransactions.pop();
-                if (transactionToAdd) {
-                  setMultipleTransactions(allTransactions);
-                  setSingleTransaction(transactionToAdd);
-                  setInitialComment('');
-                  setShowInitialComment(false);
-                }
-                return;
-              } else {
-                const id = d.length > 0 ? d[0]?.id : expenseId;
+    const expenses = [
+      {
+        name: description,
+        initialComment: expenseId ? undefined : initialComment,
+        currency,
+        amount: amount * sign,
+        groupId: group?.id ?? null,
+        splitType,
+        participants: participants.map((p) => ({
+          userId: p.id,
+          amount: (p.amount ?? 0n) * sign,
+        })),
+        paidBy: paidBy.id,
+        category,
+        fileKey,
+        expenseDate,
+        expenseId,
+        transactionId,
+        cronExpression: cronExpression ? cronToBackend(cronExpression) : undefined,
+        requestId,
+      },
+    ];
 
-                let navPromise: () => Promise<any> = () => Promise.resolve(true);
-
-                const { friendId, groupId } = router.query;
-
-                if (isStringQueryParam(friendId) && friendId && !groupId) {
-                  navPromise = () => router.push(`/balances/${friendId}/expenses/${id}`);
-                } else if (isStringQueryParam(groupId) && groupId) {
-                  navPromise = () => router.push(`/groups/${groupId}/expenses/${id}`);
-                } else {
-                  navPromise = () => router.push(`/expenses/${id}?keepAdding=1`);
-                }
-
-                if (expenseId) {
-                  navPromise = async () => router.back();
-                }
-
-                navPromise()
-                  .then(() =>
-                    update((session: any) => ({
-                      ...session,
-                      user: {
-                        ...(session?.user ?? {}),
-                        currency,
-                      },
-                    })),
-                  )
-                  .catch(console.error);
-              }
-            }
-          },
-        },
+    /* Alex hack: offline, a new expense is queued (sent once there's signal; see
+       components/Offline) instead of waiting on a request that can't be made. It's dated
+       now, not when it reaches the server. */
+    if (!onlineManager.isOnline()) {
+      if (expenseId) {
+        toast.error(t('offline.edit_needs_signal'));
+        return;
+      }
+      addExpenseMutation.mutate(
+        expenses.map((expense) => ({ ...expense, expenseDate: expense.expenseDate ?? new Date() })),
       );
+      renewRequestId();
+      noticeIfQueued(t('offline.queued'));
+      resetState();
+      router.back();
+      return;
+    }
+
+    try {
+      await addExpenseMutation.mutateAsync(expenses, {
+        onSuccess: (d) => {
+          renewRequestId();
+          if (d) {
+            if (multipleTransactions.length > 0) {
+              const allTransactions = [...multipleTransactions];
+              const transactionToAdd = allTransactions.pop();
+              if (transactionToAdd) {
+                setMultipleTransactions(allTransactions);
+                setSingleTransaction(transactionToAdd);
+                setInitialComment('');
+                setShowInitialComment(false);
+              }
+              return;
+            } else {
+              const id = d.length > 0 ? d[0]?.id : expenseId;
+
+              let navPromise: () => Promise<any> = () => Promise.resolve(true);
+
+              const { friendId, groupId } = router.query;
+
+              if (isStringQueryParam(friendId) && friendId && !groupId) {
+                navPromise = () => router.push(`/balances/${friendId}/expenses/${id}`);
+              } else if (isStringQueryParam(groupId) && groupId) {
+                navPromise = () => router.push(`/groups/${groupId}/expenses/${id}`);
+              } else {
+                navPromise = () => router.push(`/expenses/${id}?keepAdding=1`);
+              }
+
+              if (expenseId) {
+                navPromise = async () => router.back();
+              }
+
+              navPromise()
+                .then(() =>
+                  update((session: any) => ({
+                    ...session,
+                    user: {
+                      ...(session?.user ?? {}),
+                      currency,
+                    },
+                  })),
+                )
+                .catch(console.error);
+            }
+          }
+        },
+      });
     } catch (error) {
       console.error(error);
       if (error instanceof TRPCClientError && error.data?.zodError) {
@@ -237,6 +256,7 @@ export const AddOrEditExpensePage: React.FC<{
     update,
     requestId,
     renewRequestId,
+    resetState,
   ]);
 
   const handleDescriptionChange = useCallback(

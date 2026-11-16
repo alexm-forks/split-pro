@@ -96,11 +96,12 @@ const serwist = new Serwist({
   },
 });
 
-// Alex hack: forget the cached session on sign-out, so nothing shows as signed in offline.
+// Alex hack: on sign-out, forget the cached session and everything cached for that user.
+const USER_CACHES = ['auth-session', 'pages', 'next-data', 'apis', 'others'];
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if ('POST' === event.request.method && '/api/auth/signout' === url.pathname) {
-    event.waitUntil(caches.delete('auth-session'));
+    event.waitUntil(Promise.all(USER_CACHES.map((name) => caches.delete(name))));
   }
 });
 

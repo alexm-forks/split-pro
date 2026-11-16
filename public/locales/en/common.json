@@ -623,6 +623,10 @@
     "title": "You're offline",
     "description": "This page hasn't been opened on this device before, so it can't load without a connection. Pages you've opened before still work, and anything you add is sent when you're back online.",
     "retry": "Try again",
-    "home": "Home"
+    "home": "Home",
+    "banner": "{count, plural, =0 {Offline: showing saved data} one {Offline: # change waiting to send} other {Offline: # changes waiting to send}}",
+    "sending": "{count, plural, one {Sending # change…} other {Sending # changes…}}",
+    "queued": "Saved offline. It will be sent when you're back online.",
+    "edit_needs_signal": "You're offline. Editing an expense needs a connection."
   }
 }
