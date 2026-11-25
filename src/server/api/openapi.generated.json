@@ -863,6 +863,7 @@
                                     { "type": "null" }
                                   ]
                                 },
+                                "jointFinances": { "$ref": "#/components/schemas/JointFinances" },
                                 "groupDefaultSplit": {
                                   "oneOf": [
                                     {
@@ -1023,6 +1024,7 @@
                               },
                               "required": [
                                 "defaultSplit",
+                                "jointFinances",
                                 "groupDefaultSplit",
                                 "expenses",
                                 "groupUsers",
@@ -2712,6 +2714,7 @@
                     "transactionId": { "type": "string" },
                     "expenseId": { "type": "string" },
                     "conversionToId": { "type": "string" },
+                    "requestId": { "type": "string" },
                     "cronExpression": { "type": "string" },
                     "expenseDate": {
                       "oneOf": [{ "type": "string" }, { "type": "string", "format": "date-time" }]
@@ -2926,6 +2929,56 @@
           "toSpliced",
           "with"
         ],
+        "additionalProperties": false
+      },
+      "JointFinances": {
+        "type": "object",
+        "properties": {
+          "households": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "number" } },
+            "description": "A household is a list of user ids; a party is a user or a household."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "True when households exist and the group simplifies debts."
+          },
+          "balances": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PartyBalance" },
+            "description": "Simplified balances between parties (empty unless active)."
+          },
+          "memberShares": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": { "type": "number" },
+                "currency": { "type": "string" },
+                "amount": { "type": "integer", "format": "bigint" }
+              },
+              "required": ["userId", "currency", "amount"],
+              "additionalProperties": false
+            },
+            "description": "Each household member's own net with people outside their household, per currency."
+          }
+        },
+        "required": ["households", "active", "balances", "memberShares"],
+        "additionalProperties": false
+      },
+      "PartyBalance": {
+        "type": "object",
+        "properties": {
+          "partyId": { "type": "number" },
+          "friendPartyId": { "type": "number" },
+          "currency": { "type": "string" },
+          "amount": {
+            "type": "integer",
+            "format": "bigint",
+            "description": "Positive: friendParty owes party. Every pair appears in both directions, mirrored."
+          }
+        },
+        "required": ["partyId", "friendPartyId", "currency", "amount"],
         "additionalProperties": false
       },
       "$ZodFlattenedError": {
